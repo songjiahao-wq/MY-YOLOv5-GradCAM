@@ -7,6 +7,7 @@ from models.gradcam import YOLOV5GradCAM
 from models.yolo_v5_object_detector import YOLOV5TorchObjectDetector
 import cv2
 
+
 names = ['trashcan', 'slippers', 'wire', 'socks', 'carpet', 'book', 'feces', 'curtain', 'stool', 'bed',
          'sofa', 'close stool', 'table', 'cabinet']
 target_layers = ['model_17_cv3_act', 'model_20_cv3_act', 'model_23_cv3_act']
