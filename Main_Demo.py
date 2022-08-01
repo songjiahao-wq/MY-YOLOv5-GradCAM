@@ -6,7 +6,6 @@ import numpy as np
 from models.gradcam import YOLOV5GradCAM
 from models.yolo_v5_object_detector import YOLOV5TorchObjectDetector
 import cv2
-from deep_utils import split_extension
 
 names = ['trashcan', 'slippers', 'wire', 'socks', 'carpet', 'book', 'feces', 'curtain', 'stool', 'bed',
          'sofa', 'close stool', 'table', 'cabinet']
