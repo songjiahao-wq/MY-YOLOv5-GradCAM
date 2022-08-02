@@ -1,5 +1,5 @@
 import numpy as np
-from utils.boxes import Box
+from deep_utils import Box
 import torch
 from models.experimental import attempt_load
 from utils.general import xywh2xyxy
