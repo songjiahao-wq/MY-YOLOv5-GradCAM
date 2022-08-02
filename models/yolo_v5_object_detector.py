@@ -1,5 +1,4 @@
 import numpy as np
-from deep_utils import Box
 import torch
 from models.experimental import attempt_load
 from utils.general import xywh2xyxy
@@ -158,10 +157,8 @@ class YOLOV5TorchObjectDetector(nn.Module):
         for i, det in enumerate(prediction):  # detections per image
             if len(det):
                 for *xyxy, conf, cls in det:
-                    bbox = Box.box2box(xyxy,
-                                       in_source=Box.BoxSource.Torch,
-                                       to_source=Box.BoxSource.Numpy,
-                                       return_int=True)
+                    # 返回整数
+                    bbox = [int(b) for b in xyxy]
                     self.boxes[i].append(bbox)
                     self.confidences[i].append(round(conf.item(), 2))
                     cls = int(cls.item())
