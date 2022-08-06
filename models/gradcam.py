@@ -86,3 +86,47 @@ class YOLOV5GradCAM:
 
     def __call__(self, input_img):
         return self.forward(input_img)
+
+
+class YOLOV5GradCAMPP(YOLOV5GradCAM):
+    def __init__(self, model, layer_name, img_size=(640, 640)):
+        super(YOLOV5GradCAMPP, self).__init__(model, layer_name, img_size)
+
+    def forward(self, input_img, class_idx=True):
+        saliency_maps = []
+        b, c, h, w = input_img.size()
+        tic = time.time()
+        preds, logits = self.model(input_img)
+        print("[INFO] model-forward took: ", round(time.time() - tic, 4), 'seconds')
+        for logit, cls, cls_name in zip(logits[0], preds[1][0], preds[2][0]):
+            if class_idx:
+                score = logit[cls]
+            else:
+                score = logit.max()
+            self.model.zero_grad()
+            tic = time.time()
+            # 获取梯度
+            score.backward(retain_graph=True)
+            print(f"[INFO] {cls_name}, model-backward took: ", round(time.time() - tic, 4), 'seconds')
+            gradients = self.gradients['value']  # dS/dA
+            activations = self.activations['value']  # A
+            b, k, u, v = gradients.size()
+
+            alpha_num = gradients.pow(2)
+            alpha_denom = gradients.pow(2).mul(2) + \
+                          activations.mul(gradients.pow(3)).view(b, k, u * v).sum(-1, keepdim=True).view(b, k, 1, 1)
+            # torch.where(condition, x, y) condition是条件，满足条件就返回x，不满足就返回y
+            alpha_denom = torch.where(alpha_denom != 0.0, alpha_denom, torch.ones_like(alpha_denom))
+            alpha = alpha_num.div(alpha_denom + 1e-7)
+
+            positive_gradients = F.relu(score.exp() * gradients)  # ReLU(dY/dA) == ReLU(exp(S)*dS/dA))
+            # positive_gradients = F.relu(gradients)
+            weights = (alpha * positive_gradients).view(b, k, u * v).sum(-1).view(b, k, 1, 1)
+
+            saliency_map = (weights * activations).sum(1, keepdim=True)
+            saliency_map = F.relu(saliency_map)
+            saliency_map = F.interpolate(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
+            saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
+            saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
+            saliency_maps.append(saliency_map)
+        return saliency_maps, logits, preds

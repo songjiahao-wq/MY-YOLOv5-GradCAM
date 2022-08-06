@@ -3,10 +3,9 @@ import random
 import time
 import argparse
 import numpy as np
-from models.gradcam import YOLOV5GradCAM
+from models.gradcam import YOLOV5GradCAM, YOLOV5GradCAMPP
 from models.yolo_v5_object_detector import YOLOV5TorchObjectDetector
 import cv2
-
 
 names = ['trashcan', 'slippers', 'wire', 'socks', 'carpet', 'book', 'feces', 'curtain', 'stool', 'bed',
          'sofa', 'close stool', 'table', 'cabinet']
@@ -14,13 +13,13 @@ target_layers = ['model_17_cv3_act', 'model_20_cv3_act', 'model_23_cv3_act']
 # Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--model-path', type=str, default="weights/yolov5s_100e_256b_pre.pt", help='Path to the model')
-parser.add_argument('--img-path', type=str, default='data/odsrihs/000001.jpg', help='input image path')
+parser.add_argument('--img-path', type=str, default='data/odsrihs', help='input image path')
 parser.add_argument('--output-dir', type=str, default='outputs/', help='output dir')
 parser.add_argument('--img-size', type=int, default=640, help="input image size")
 parser.add_argument('--target-layer', type=str, default='model_17_cv3_act',
                     help='The layer hierarchical address to which gradcam will applied,'
                          ' the names should be separated by underline')
-parser.add_argument('--method', type=str, default='gradcam', help='gradcam method')
+parser.add_argument('--method', type=str, default='gradcampp', help='gradcam method')
 parser.add_argument('--device', type=str, default='cpu', help='cuda or cpu')
 parser.add_argument('--names', type=str, default=None,
                     help='The name of the classes. The default is set to None and is set to coco classes. Provide your custom names as follow: object1,object2,object3')
@@ -85,12 +84,14 @@ def main(img_path):
         # 获取grad-cam方法
         if args.method == 'gradcam':
             saliency_method = YOLOV5GradCAM(model=model, layer_name=target_layer, img_size=input_size)
+        elif args.method == 'gradcampp':
+            saliency_method = YOLOV5GradCAMPP(model=model, layer_name=target_layer, img_size=input_size)
         masks, logits, [boxes, _, class_names, conf] = saliency_method(torch_img)  # 得到预测结果
         result = torch_img.squeeze(0).mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).detach().cpu().numpy()
         result = result[..., ::-1]  # convert to bgr
         # 保存设置
         imgae_name = os.path.basename(img_path)  # 获取图片名
-        save_path = args.output_dir + imgae_name[:-4]
+        save_path = f'{args.output_dir}{imgae_name[:-4]}/{args.method}'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
         print(f'[INFO] Saving the final image at {save_path}')
@@ -107,7 +108,7 @@ def main(img_path):
                                    line_thickness=3)
             output_path = f'{save_path}/{target_layer[6:8]}_{i}.jpg'
             cv2.imwrite(output_path, res_img)
-            print(f'{i}.jpg done!!')
+            print(f'{target_layer[6:8]}_{i}.jpg done!!')
     print(f'Total time : {round(time.time() - tic, 4)} s')
 
 
