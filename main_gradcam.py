@@ -18,7 +18,7 @@ names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', '
          'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
          'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
          'hair drier', 'toothbrush']  # class names
-
+# yolov5s网络中的三个detect层
 target_layers = ['model_17_cv3_act', 'model_20_cv3_act', 'model_23_cv3_act']
 # Arguments
 parser = argparse.ArgumentParser()
