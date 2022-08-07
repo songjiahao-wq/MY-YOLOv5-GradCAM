@@ -7,22 +7,30 @@ from models.gradcam import YOLOV5GradCAM, YOLOV5GradCAMPP
 from models.yolo_v5_object_detector import YOLOV5TorchObjectDetector
 import cv2
 
-names = ['trashcan', 'slippers', 'wire', 'socks', 'carpet', 'book', 'feces', 'curtain', 'stool', 'bed',
-         'sofa', 'close stool', 'table', 'cabinet']
+# names = ['trashcan', 'slippers', 'wire', 'socks', 'carpet', 'book', 'feces', 'curtain', 'stool', 'bed',
+#          'sofa', 'close stool', 'table', 'cabinet']
+names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+         'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+         'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+         'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+         'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+         'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+         'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+         'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
+         'hair drier', 'toothbrush']  # class names
+
 target_layers = ['model_17_cv3_act', 'model_20_cv3_act', 'model_23_cv3_act']
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--model-path', type=str, default="weights/yolov5s_100e_256b_pre.pt", help='Path to the model')
-parser.add_argument('--img-path', type=str, default='data/odsrihs', help='input image path')
+parser.add_argument('--model-path', type=str, default="weights/yolov5s.pt", help='Path to the model')
+parser.add_argument('--img-path', type=str, default='data/images', help='input image path')
 parser.add_argument('--output-dir', type=str, default='outputs/', help='output dir')
 parser.add_argument('--img-size', type=int, default=640, help="input image size")
 parser.add_argument('--target-layer', type=str, default='model_17_cv3_act',
                     help='The layer hierarchical address to which gradcam will applied,'
                          ' the names should be separated by underline')
-parser.add_argument('--method', type=str, default='gradcampp', help='gradcam method')
+parser.add_argument('--method', type=str, default='gradcam', help='gradcam method')
 parser.add_argument('--device', type=str, default='cpu', help='cuda or cpu')
-parser.add_argument('--names', type=str, default=None,
-                    help='The name of the classes. The default is set to None and is set to coco classes. Provide your custom names as follow: object1,object2,object3')
 parser.add_argument('--no_text_box', action='store_true',
                     help='do not show label and box on the heatmap')
 args = parser.parse_args()
@@ -73,8 +81,7 @@ def main(img_path):
     img = cv2.imread(img_path)  # 读取图像格式：BGR
     print('[INFO] Loading the model')
     # 实例化YOLOv5模型，得到检测结果
-    model = YOLOV5TorchObjectDetector(args.model_path, device, img_size=input_size,
-                                      names=None if args.names is None else args.names.strip().split(","))
+    model = YOLOV5TorchObjectDetector(args.model_path, device, img_size=input_size, names=names)
     # img[..., ::-1]: BGR --> RGB
     # (480, 640, 3) --> (1, 3, 480, 640)
     torch_img = model.preprocessing(img[..., ::-1])
@@ -106,6 +113,8 @@ def main(img_path):
             res_img, heat_map = get_res_img(bbox, mask, res_img)
             res_img = plot_one_box(bbox, res_img, label=label, color=colors[int(names.index(cls_name))],
                                    line_thickness=3)
+            # 缩放到原图片大小
+            res_img = cv2.resize(res_img, dsize=(img.shape[:-1][::-1]))
             output_path = f'{save_path}/{target_layer[6:8]}_{i}.jpg'
             cv2.imwrite(output_path, res_img)
             print(f'{target_layer[6:8]}_{i}.jpg done!!')
